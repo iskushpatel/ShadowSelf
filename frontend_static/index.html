@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ShadowSelf â€” AI Psychological Profiler</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#f5f4f0;--white:#fff;--surface:#fafaf8;--border:#e8e6e0;--border2:#d4d0c8;
+      --text:#1a1916;--text2:#6b6860;--text3:#a8a49c;
+      --accent:#5b4fcf;--accent-lt:#ede9ff;--accent2:#7c6ff0;
+      --green:#16a34a;--green-lt:#dcfce7;--red:#dc2626;--red-lt:#fee2e2;
+      --amber:#d97706;--amber-lt:#fef3c7;--teal:#0891b2;
+      --r:12px;--r-sm:8px;
+      --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+      --shadow-md:0 4px 16px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06);
+    }
+    html,body{height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.55}
+
+    /* â”€â”€ Layout â”€â”€ */
+    .app{display:flex;height:100vh;overflow:hidden}
+    .sidebar{width:220px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+    .main{flex:1;overflow-y:auto;background:var(--bg)}
+
+    /* â”€â”€ Sidebar â”€â”€ */
+    .logo{padding:18px 16px 14px;border-bottom:1px solid var(--border)}
+    .logo-name{font-size:16px;font-weight:700;color:var(--accent);letter-spacing:-.3px}
+    .logo-tag{font-size:11px;color:var(--text3);margin-top:2px}
+    .health-bar{padding:8px 14px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2);background:var(--surface);border-bottom:1px solid var(--border)}
+    .h-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+    .h-dot.ok{background:var(--green)}.h-dot.err{background:var(--red)}
+    .health-bar button{margin-left:auto;background:none;border:1px solid var(--border);color:var(--text3);font-size:10px;padding:2px 7px;border-radius:5px;cursor:pointer;font-family:inherit}
+    .sb-section{padding:12px 10px 6px}
+    .sb-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.1em;padding:0 6px;margin-bottom:5px}
+    .sb-user{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+    .sb-user input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:12px;padding:6px 9px;outline:none;font-family:inherit;transition:border-color .12s}
+    .sb-user input:focus{border-color:var(--accent)}
+    .nav-item{display:flex;align-items:center;gap:9px;width:100%;padding:8px 8px;border:none;background:none;border-radius:var(--r-sm);color:var(--text2);cursor:pointer;text-align:left;font-size:13px;font-family:inherit;transition:background .1s,color .1s}
+    .nav-item:hover{background:var(--bg);color:var(--text)}
+    .nav-item.active{background:var(--accent-lt);color:var(--accent);font-weight:500}
+    .nav-icon{font-size:15px;width:20px;text-align:center}
+    .divider{height:1px;background:var(--border);margin:4px 0}
+
+    /* â”€â”€ Top strip â”€â”€ */
+    .topbar{padding:12px 24px 0;background:var(--bg)}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    .page-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+    .page-sub{font-size:13px;color:var(--text3);margin-top:2px}
+
+    /* â”€â”€ Page body â”€â”€ */
+    .page{display:none}
+    .page.active{display:block}
+    .page-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+
+    /* â”€â”€ Cards â”€â”€ */
+    .card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow)}
+    .card-title{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.12em;margin-bottom:14px;text-transform:uppercase}
+    .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+
+    /* â”€â”€ Buttons â”€â”€ */
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:var(--r-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .12s;white-space:nowrap}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-primary{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(91,79,207,.25)}
+    .btn-primary:hover:not(:disabled){background:var(--accent2)}
+    .btn-secondary{background:var(--white);color:var(--text);border:1px solid var(--border)}
+    .btn-secondary:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+    .btn-ghost{background:none;color:var(--text2);border:1px solid var(--border);padding:5px 11px;font-size:11px}
+    .btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--border2)}
+    .btn-lg{padding:12px 28px;font-size:14px;font-weight:600;border-radius:10px}
+
+    /* â”€â”€ Fields â”€â”€ */
+    .field{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+    .field label{font-size:12px;color:var(--text2);font-weight:500}
+    .field input,.field textarea,.field select{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;width:100%;transition:border-color .12s}
+    .field input:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(91,79,207,.08)}
+    .field textarea{resize:vertical;min-height:90px}
+
+    /* â”€â”€ Pills â”€â”€ */
+    .pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+    .pill-ok{background:var(--green-lt);color:var(--green)}
+    .pill-err{background:var(--red-lt);color:var(--red)}
+    .pill-idle{background:var(--bg);color:var(--text3);border:1px solid var(--border)}
+    .pill-info{background:var(--accent-lt);color:var(--accent)}
+
+    /* â”€â”€ Source cards grid â”€â”€ */
+    .sources-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+    .src-card{border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;cursor:pointer;transition:border-color .15s,background .15s;background:var(--white);position:relative}
+    .src-card:hover{border-color:var(--accent);background:var(--accent-lt)}
+    .src-card.active{border-color:var(--accent);background:var(--accent-lt)}
+    .src-card.has-data{border-color:#86efac;background:#f0fdf4}
+    .src-icon{font-size:20px;margin-bottom:6px}
+    .src-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+    .src-desc{font-size:11px;color:var(--text3);line-height:1.4}
+    .src-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--green-lt);color:var(--green)}
+    .src-method{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--accent-lt);color:var(--accent);margin-top:6px}
+
+    /* â”€â”€ Source config panel â”€â”€ */
+    .src-config{border:1px solid var(--accent);border-radius:var(--r);padding:18px;background:var(--accent-lt);margin-top:4px}
+    .src-config-title{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .src-config-name{font-size:15px;font-weight:700;color:var(--text)}
+    .src-config-hint{font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.5;padding:8px 12px;background:var(--white);border-radius:var(--r-sm);border:1px solid var(--border)}
+
+    /* â”€â”€ File upload zone â”€â”€ */
+    .upload-zone{border:2px dashed var(--border2);border-radius:var(--r-sm);padding:24px;text-align:center;cursor:pointer;transition:border-color .12s,background .12s;background:var(--surface)}
+    .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-lt)}
+    .upload-zone input{display:none}
+    .upload-zone-icon{font-size:28px;margin-bottom:8px}
+    .upload-zone-text{font-size:13px;color:var(--text2)}
+    .upload-zone-sub{font-size:11px;color:var(--text3);margin-top:3px}
+    .upload-file-selected{font-size:12px;color:var(--accent);font-weight:500;margin-top:6px}
+
+    /* â”€â”€ Result cards â”€â”€ */
+    .result-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+    .res-card{padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)}
+    .res-card.ok{border-color:#86efac;background:#f0fdf4}
+    .res-card.err{border-color:#fca5a5;background:#fff5f5}
+    .res-label{font-size:11px;color:var(--text3);margin-bottom:5px;font-weight:500}
+    .res-count{font-size:26px;font-weight:700;color:var(--text);line-height:1}
+    .res-count.fail{font-size:13px;color:var(--red);font-weight:600}
+    .res-detail{font-size:11px;color:var(--text3);margin-top:3px}
+
+    /* â”€â”€ Profile hero â”€â”€ */
+    .profile-hero{padding:30px;background:linear-gradient(135deg,#5b4fcf 0%,#7c6ff0 50%,#0891b2 100%);border-radius:var(--r);color:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow-md)}
+    .profile-hero::before{content:'';position:absolute;top:-80px;right:-80px;width:260px;height:260px;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);pointer-events:none}
+    .hero-archetype{font-size:11px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.7);margin-bottom:8px;text-transform:uppercase}
+    .hero-headline{font-size:24px;font-weight:700;letter-spacing:-.5px;color:#fff;line-height:1.2;margin-bottom:12px}
+    .hero-perceived{font-size:14px;color:rgba(255,255,255,.85);line-height:1.7;max-width:620px}
+    .hero-meta{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap}
+    .hero-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff}
+
+    /* â”€â”€ Grids â”€â”€ */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+
+    /* â”€â”€ OCEAN â”€â”€ */
+    .ocean-list{display:flex;flex-direction:column;gap:14px}
+    .ocean-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+    .ocean-trait{font-size:13px;font-weight:600;color:var(--text)}
+    .ocean-right{display:flex;align-items:center;gap:8px}
+    .ocean-pct{font-size:14px;font-weight:700;color:var(--accent)}
+    .ocean-conf{font-size:11px;color:var(--text3)}
+    .ocean-track{height:6px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+    .ocean-fill{height:100%;border-radius:3px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+    .fill-O{background:linear-gradient(90deg,#5b4fcf,#7c6ff0)}
+    .fill-C{background:linear-gradient(90deg,#0891b2,#38bdf8)}
+    .fill-E{background:linear-gradient(90deg,#d97706,#fbbf24)}
+    .fill-A{background:linear-gradient(90deg,#16a34a,#4ade80)}
+    .fill-N{background:linear-gradient(90deg,#dc2626,#f87171)}
+    .ocean-readable{font-size:12px;color:var(--text2);margin-top:4px;line-height:1.5}
+    .chart-wrap{max-width:200px;margin:0 auto 16px}
+
+    /* â”€â”€ Topics â”€â”€ */
+    .topics-list{display:flex;flex-direction:column;gap:10px}
+    .topic-row{display:flex;align-items:center;gap:8px}
+    .topic-name{font-size:13px;font-weight:500;color:var(--text);min-width:110px}
+    .topic-track{flex:1;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;border:1px solid var(--border)}
+    .topic-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .9s cubic-bezier(.4,0,.2,1)}
+    .topic-pct{font-size:11px;color:var(--text3);min-width:30px;text-align:right}
+    .topic-insight{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.5;padding-left:118px}
+
+    /* â”€â”€ Sentiment â”€â”€ */
+    .sent-chips{display:flex;gap:9px;flex-wrap:wrap}
+    .sent-chip{flex:1;min-width:90px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm)}
+    .sc-label{font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.1em;margin-bottom:4px}
+    .sc-value{font-size:15px;font-weight:700;color:var(--text)}
+
+    /* â”€â”€ Insights â”€â”€ */
+    .insight-list{display:flex;flex-direction:column;gap:7px}
+    .insight-item{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;background:var(--surface);border-radius:var(--r-sm);font-size:13px;color:var(--text);line-height:1.5;border:1px solid var(--border)}
+    .ins-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0}
+    .dot-green{background:var(--green)}.dot-amber{background:var(--amber)}
+
+    /* â”€â”€ Prose â”€â”€ */
+    .prose{font-size:14px;color:var(--text2);line-height:1.75}
+
+    /* â”€â”€ Log â”€â”€ */
+    .log-box{background:#1a1916;border-radius:var(--r-sm);padding:11px;font-family:"Fira Code",monospace;font-size:11px;color:#8a8a7a;max-height:140px;overflow-y:auto;white-space:pre-wrap;word-break:break-all}
+
+    /* â”€â”€ History â”€â”€ */
+    .hist-list{display:flex;flex-direction:column;gap:8px}
+    .hist-row{display:flex;align-items:center;gap:12px;padding:11px 14px;background:var(--surface);border-radius:var(--r-sm);font-size:12px;border:1px solid var(--border)}
+    .hist-date{color:var(--text3);white-space:nowrap}
+    .hist-posts{font-weight:700;color:var(--accent);white-space:nowrap}
+    .hist-summary{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+
+    /* â”€â”€ Empty â”€â”€ */
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;color:var(--text3);text-align:center;gap:8px}
+    .empty-icon{font-size:32px;opacity:.5}
+    .empty-state p{font-size:13px;max-width:260px;line-height:1.6}
+
+    /* â”€â”€ Spinner â”€â”€ */
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .spin{width:13px;height:13px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+
+    /* â”€â”€ Analyze CTA bar â”€â”€ */
+    .cta-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow)}
+    .cta-bar-left{display:flex;flex-direction:column;gap:2px}
+    .cta-bar-title{font-size:14px;font-weight:600;color:var(--text)}
+    .cta-bar-sub{font-size:12px;color:var(--text3)}
+    .cta-bar-right{display:flex;gap:8px;align-items:center}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- â”€â”€ Sidebar â”€â”€ -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-name">ShadowSelf</div>
+      <div class="logo-tag">AI psychological profiler</div>
+    </div>
+    <div class="health-bar">
+      <span class="h-dot" id="hDot"></span>
+      <span id="hText" style="font-size:12px;">Checkingâ€¦</span>
+      <button onclick="checkHealth()">â†º</button>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">USER</div>
+      <div class="sb-user">
+        <input id="sUsername" type="text" placeholder="Username" value="demo_user"/>
+        <input id="sEmail" type="email" placeholder="Email (optional)"/>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="sb-section" style="flex:1;">
+      <div class="sb-label">NAVIGATION</div>
+      <button class="nav-item active" data-page="collect">
+        <span class="nav-icon">ðŸ“¥</span> Collect data
+      </button>
+      <button class="nav-item" data-page="profile">
+        <span class="nav-icon">ðŸªž</span> View profile
+      </button>
+      <button class="nav-item" data-page="history">
+        <span class="nav-icon">ðŸ“…</span> History
+      </button>
+    </div>
+    <div class="divider"></div>
+    <div style="padding:12px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;" id="selCount">0 sources ready</div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" id="analyzeAllBtn" disabled>
+        âœ¦ Analyze my profile
+      </button>
+    </div>
+  </aside>
+
+  <!-- â”€â”€ Main â”€â”€ -->
+  <main class="main">
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â• PAGE: COLLECT â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="page-collect" class="page active">
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div>
+            <div class="page-title">Collect your data</div>
+            <div class="page-sub">Add text or connect sources â€” then hit Analyze</div>
+          </div>
+        </div>
+      </div>
+      <div class="page-body">
+
+        <!-- Text input at top -->
+        <div class="card">
+          <div class="card-title">MANUAL FALLBACK</div>
+          <div class="field" style="margin-bottom:8px;">
+            <textarea id="manualText" placeholder="Paste anything â€” tweets, journal entries, Reddit comments, essays, messages, anything you've written onlineâ€¦" style="min-height:110px;"></textarea>
+          </div>
+          <button class="btn btn-secondary" id="manualIngestBtn">Add text</button>
+          <span id="manualResult" style="margin-left:10px;font-size:12px;color:var(--text3);"></span>
+        </div>
+
+        <!-- Sources grid -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title" style="margin-bottom:0;">CONNECT A SOURCE</div>
+            <span style="font-size:11px;color:var(--text3);">Click a source to configure it</span>
+          </div>
+          <div class="sources-grid" id="sourcesGrid"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary" id="fetchConfiguredBtn">Fetch configured sources</button>
+          </div>
+          <!-- Config panel appears below grid -->
+          <div id="srcConfigPanel" style="display:none;margin-top:14px;"></div>
+        </div>
+
+        <!-- Results -->
+        <div id="resultsCard" class="card" style="display:none;">
+          <div class="card-head">
+            <div class="card-title" style="margin-bottom:0;">INGEST RESULTS</div>
+            <span class="pill pill-idle" id="resultsPill">â€”</span>
+          </div>
+          <div class="result-grid" id="resultGrid"></div>
+        </div>
+
+        <!-- Analyze CTA -->
+        <div class="cta-bar" id="ctaBar" style="display:none;">
+          <div class="cta-bar-left">
+            <div class="cta-bar-title" id="ctaTitle">Ready to analyze</div>
+            <div class="cta-bar-sub" id="ctaSub">Posts collected â€” generate your shadow profile</div>
+          </div>
+          <div class="cta-bar-right">
+            <button class="btn btn-primary btn-lg" id="ctaAnalyzeBtn">âœ¦ Analyze now</button>
+          </div>
+        </div>
+
+        <!-- Log (collapsed by default) -->
+        <details>
+          <summary style="font-size:12px;color:var(--text3);cursor:pointer;padding:4px 0;">API log</summary>
+          <div style="margin-top:8px;">
+            <div class="log-box" id="logBox"></div>
+          </div>
+        </details>
+
+      </div>
+    </div>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â• PAGE: PROFILE â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="page-profile" class="page">
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div>
+            <div class="page-title">Your shadow profile</div>
+            <div class="page-sub">What your digital writing reveals about you</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="loadProfile()">â†º Refresh</button>
+            <button class="btn btn-secondary" onclick="switchPage('collect')">â† Back</button>
+          </div>
+        </div>
+      </div>
+      <div class="page-body">
+
+        <div id="profileEmpty" class="card">
+          <div class="empty-state">
+            <div class="empty-icon">ðŸªž</div>
+            <p>No profile yet. Collect data and click "Analyze my profile".</p>
+            <button class="btn btn-secondary" style="margin-top:8px;" onclick="switchPage('collect')">Go collect data</button>
+          </div>
+        </div>
+
+        <div id="profileContent" style="display:none;flex-direction:column;gap:16px;">
+
+          <!-- Hero -->
+          <div class="profile-hero">
+            <div class="hero-archetype" id="heroArchetype"></div>
+            <div class="hero-headline" id="heroHeadline">Your Profile</div>
+            <div class="hero-perceived" id="heroPerceived"></div>
+            <div class="hero-meta">
+              <span class="hero-pill" id="heroPostCount">â€” posts</span>
+              <span class="hero-pill" id="heroDominant"></span>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="card">
+            <div class="card-title">NARRATIVE SUMMARY</div>
+            <p class="prose" id="profileSummary"></p>
+          </div>
+
+          <!-- OCEAN + right col -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">PERSONALITY (OCEAN)</div>
+              <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+              <div class="ocean-list" id="oceanList"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <div class="card">
+                <div class="card-title">SENTIMENT</div>
+                <div class="sent-chips" id="sentChips"></div>
+              </div>
+              <div class="card" style="flex:1;">
+                <div class="card-title">INTERESTS & TOPICS</div>
+                <div class="topics-list" id="topicsList"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Communication + Emotional -->
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-title">COMMUNICATION STYLE</div>
+              <p class="prose" id="commStyle"></p>
+            </div>
+            <div class="card">
+              <div class="card-title">EMOTIONAL SIGNATURE</div>
+              <p class="prose" id="emotSig"></p>
+            </div>
+          </div>
+
+          <!-- Strengths / Blind Spots / How to Connect -->
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-title">âœ¦ STRENGTHS</div>
+              <div class="insight-list" id="strengthsList"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">â—Ž BLIND SPOTS</div>
+              <div class="insight-list" id="blindSpotsList"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">ðŸ’¬ HOW TO CONNECT WITH YOU</div>
+              <p class="prose" id="howToConnect"></p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- â•â•â•â•â•â•â•â•â•â•â•â• PAGE: HISTORY â•â•â•â•â•â•â•â•â•â•â•â• -->
+    <div id="page-history" class="page">
+      <div class="topbar">
+        <div class="topbar-inner">
+          <div class="page-title">Profile history</div>
+          <button class="btn btn-ghost" onclick="loadHistory()">â†º Refresh</button>
+        </div>
+      </div>
+      <div class="page-body">
+        <div class="card">
+          <div class="hist-list" id="historyList">
+            <div class="empty-state" style="padding:28px 0;"><p>No snapshots yet.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const S = { userId: null, busy: false, ingestedSources: new Set(), activeSrc: null };
+
+// â”€â”€ Source definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// method: "username" | "upload" | "oauth" | "text"
+const SOURCES = [
+  {
+    id: "reddit", icon: "ðŸŸ ", name: "Reddit",
+    desc: "Fetch public posts & comments",
+    method: "username", hint: "Enter any public Reddit username â€” no account or login needed.",
+    path: "/ingest/reddit-live",
+    fields: [{ id: "reddit_username", label: "Reddit username", placeholder: "GovSchwarzenegger" }],
+    buildPayload(v, id) {
+      const u = need(v.reddit_username, "Reddit username");
+      return { reddit_username: u, username: $("sUsername").value.trim() || u, user_id: id };
+    },
+  },
+  {
+    id: "github", icon: "â¬›", name: "GitHub",
+    desc: "Repos, commit messages, bio",
+    method: "username", hint: "Enter any public GitHub username â€” no token needed (add GITHUB_TOKEN to .env for higher rate limits).",
+    path: "/ingest/github",
+    fields: [{ id: "github_username", label: "GitHub username", placeholder: "torvalds" }],
+    buildPayload(v, id) {
+      const u = need(v.github_username, "GitHub username");
+      return { github_username: u, username: $("sUsername").value.trim() || u, user_id: id };
+    },
+  },
+  {
+    id: "gmail", icon: "ðŸ“§", name: "Gmail",
+    desc: "Your sent emails",
+    method: "oauth", hint: "Click Connect Gmail â€” you'll be redirected to Google OAuth. We only read your sent folder.",
+    path: "/ingest/gmail",
+    oauth: "gmail",
+    fields: [
+      { id: "access_token", label: "Access token (auto-filled after OAuth)", type: "password" },
+      { id: "max_results", label: "Max emails", type: "number", value: "25" },
+    ],
+    buildPayload(v, id) {
+      return { access_token: need(v.access_token, "Gmail token"), max_results: numVal(v.max_results), user_id: id, username: $("sUsername").value.trim() || undefined };
+    },
+  },
+  {
+    id: "linkedin", icon: "💼", name: "LinkedIn",
+    desc: "Profile via OAuth",
+    method: "oauth",
+    hint: "Click Connect LinkedIn, then fetch your LinkedIn OpenID profile. LinkedIn post history needs a data export parser later.",
+    path: "/ingest/linkedin",
+    oauth: "linkedin",
+    fields: [
+      { id: "access_token", label: "Access token (auto-filled after OAuth)", type: "password" },
+    ],
+    buildPayload(v, id) {
+      return { access_token: need(v.access_token, "LinkedIn token"), max_results: 1, user_id: id, username: $("sUsername").value.trim() || undefined };
+    },
+  },
+  {
+    id: "meta", icon: "🔵", name: "Meta / Instagram",
+    desc: "Facebook posts + Instagram captions",
+    method: "oauth",
+    hint: "Click Connect Meta, then fetch Facebook posts and Instagram captions when your app permissions allow it. user_posts and instagram_basic may require app review outside dev mode.",
+    path: "/ingest/meta",
+    oauth: "meta",
+    fields: [
+      { id: "access_token", label: "Access token (auto-filled after OAuth)", type: "password" },
+      { id: "max_results", label: "Max posts", type: "number", value: "25" },
+    ],
+    buildPayload(v, id) {
+      return { access_token: need(v.access_token, "Meta token"), max_results: numVal(v.max_results), user_id: id, username: $("sUsername").value.trim() || undefined };
+    },
+  },
+  {
+    id: "reddit_zip", icon: "📦", name: "Reddit ZIP",
+    desc: "Server-side export path",
+    method: "username",
+    hint: "Enter a ZIP path that the backend server can read. Browser file upload is not wired for this endpoint yet.",
+    path: "/ingest/reddit-zip",
+    fields: [{ id: "zip_path", label: "Server ZIP path", placeholder: "D:\\exports\\reddit.zip" }],
+    buildPayload(v, id) {
+      return { zip_path: need(v.zip_path, "Reddit ZIP path"), user_id: id, username: $("sUsername").value.trim() || undefined };
+    },
+  },
+  {
+    id: "twitter", icon: "🐦", name: "Twitter / X",
+    desc: "No public API available",
+    method: "manual",
+    hint: "X (Twitter) locked its free API in 2023, so there's no reliable way to pull your tweets automatically anymore. Paste your tweets, a thread, or your archive export text into the Manual fallback box above — we'll tag it as Twitter/X so it's still counted separately below.",
+    manualSourceName: "twitter_manual",
+    manualLabel: "Twitter / X",
+  },
+];
+
+const srcById = Object.fromEntries(SOURCES.map(s => [s.id, s]));
+const METHOD_LABEL = { username: "Username", upload: "File upload", oauth: "OAuth", text: "Text", manual: "Manual paste" };
+
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+function need(v, l) { const s = String(v || "").trim(); if (!s) throw new Error(`${l} is required.`); return s; }
+function numVal(v, d = 25) { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(1, Math.min(200, n)) : d; }
+function lsKey(s, f) { return `ss_${s}_${f}`; }
+function oauthKey(p) { return `shadowself_oauth_${p}`; }
+function logMsg(label, data) {
+  const box = $("logBox");
+  box.textContent = `â–¶ ${label}\n${JSON.stringify(data, null, 2)}\n\n` + box.textContent;
+}
+async function api(path, opts = {}) {
+  const r = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts });
+  const t = await r.text(); let d = {};
+  try { d = t ? JSON.parse(t) : {}; } catch { d = { detail: t }; }
+  if (!r.ok) throw new Error(d.detail || r.statusText);
+  return d;
+}
+async function apiForm(path, formData) {
+  const r = await fetch(path, { method: "POST", body: formData });
+  const t = await r.text(); let d = {};
+  try { d = t ? JSON.parse(t) : {}; } catch { d = { detail: t }; }
+  if (!r.ok) throw new Error(d.detail || r.statusText);
+  return d;
+}
+
+// â”€â”€ Pages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function switchPage(name) {
+  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.page === name));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === `page-${name}`));
+  if (name === "history") loadHistory();
+  if (name === "profile") loadProfile();
+}
+document.querySelectorAll(".nav-item").forEach(b => b.addEventListener("click", () => switchPage(b.dataset.page)));
+
+// â”€â”€ Render sources grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function renderSourcesGrid() {
+  $("sourcesGrid").innerHTML = SOURCES.map(s => {
+    const done = S.ingestedSources.has(s.id);
+    const active = S.activeSrc === s.id;
+    return `<div class="src-card ${active ? "active" : ""} ${done ? "has-data" : ""}" data-sid="${s.id}">
+      ${done ? `<div class="src-badge">âœ“ done</div>` : ""}
+      <div class="src-icon">${s.icon}</div>
+      <div class="src-name">${esc(s.name)}</div>
+      <div class="src-desc">${esc(s.desc)}</div>
+      <div class="src-method">${esc(METHOD_LABEL[s.method] || s.method)}</div>
+    </div>`;
+  }).join("");
+  $("sourcesGrid").querySelectorAll("[data-sid]").forEach(el => {
+    el.addEventListener("click", () => openSrcConfig(el.dataset.sid));
+  });
+  updateCounts();
+}
+
+// â”€â”€ Source config panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function openSrcConfig(id) {
+  S.activeSrc = id;
+  const src = srcById[id];
+  const panel = $("srcConfigPanel");
+  const done = S.ingestedSources.has(id);
+
+  let fieldsHtml = "";
+
+  if (src.method === "username") {
+    fieldsHtml = src.fields.map(f => {
+      const saved = localStorage.getItem(lsKey(src.id, f.id)) || "";
+      return `<div class="field">
+        <label>${esc(f.label)}</label>
+        <input type="text" data-fid="${src.id}:${f.id}" value="${esc(saved)}" placeholder="${esc(f.placeholder || "")}">
+      </div>`;
+    }).join("");
+    fieldsHtml += `<button class="btn btn-primary" data-ingest="${id}">Fetch ${esc(src.name)} posts</button>`;
+  }
+
+  if (src.method === "oauth") {
+    const connected = !!localStorage.getItem(oauthKey(src.oauth || ""));
+    const token = localStorage.getItem(oauthKey(src.oauth || "")) || localStorage.getItem(lsKey(src.id, "access_token")) || "";
+    fieldsHtml = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;">
+      <button class="btn btn-primary" onclick="window.location.href='/oauth/${esc(src.oauth)}/start'">
+        ${connected ? "Reconnect" : "Connect"} ${esc(src.name)}
+      </button>
+      <span class="pill ${connected ? "pill-ok" : "pill-idle"}">${connected ? "connected" : "not connected"}</span>
+    </div>`;
+    // Token field stays visible so OAuth and manual-token testing both work.
+    const maxF = src.fields.find(f => f.id === "max_results");
+    fieldsHtml += `<div class="field"><label>Access token</label><input type="password" data-fid="${src.id}:access_token" value="${esc(token)}" autocomplete="off" placeholder="Paste token or use Connect"></div>`;
+    if (maxF) {
+      const savedMax = localStorage.getItem(lsKey(src.id, "max_results")) || maxF.value || "25";
+      fieldsHtml += `<div class="field"><label>${esc(maxF.label)}</label><input type="number" data-fid="${src.id}:max_results" value="${esc(savedMax)}"></div>`;
+    }
+    fieldsHtml += `<button class="btn btn-primary" data-ingest="${id}">Fetch ${esc(src.name)}</button>`;
+  }
+
+  if (src.method === "upload") {
+    const uf = src.uploadField;
+    fieldsHtml = `
+      <div class="upload-zone" id="uzone_${src.id}">
+        <input type="file" id="ufile_${src.id}" accept="${esc(uf.accept)}">
+        <div class="upload-zone-icon">ðŸ“‚</div>
+        <div class="upload-zone-text">Click to choose file</div>
+        <div class="upload-zone-sub">${esc(uf.label)}</div>
+        <div class="upload-file-selected" id="uname_${src.id}"></div>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-primary" data-ingest="${src.id}" disabled id="ubtn_${src.id}">Upload & ingest</button>
+      </div>`;
+  }
+
+  if (src.method === "manual") {
+    fieldsHtml = `<button class="btn btn-primary" type="button" id="gotoManualBtn_${src.id}">↑ Use the manual paste box above</button>`;
+  }
+
+  panel.style.display = "";
+  panel.innerHTML = `
+    <div class="src-config">
+      <div class="src-config-title">
+        <span style="font-size:22px;">${src.icon}</span>
+        <span class="src-config-name">${esc(src.name)}</span>
+        ${done ? `<span class="pill pill-ok">âœ“ data collected</span>` : ""}
+      </div>
+      <div class="src-config-hint">${esc(src.hint)}</div>
+      ${fieldsHtml}
+      <div id="srcResult_${src.id}" style="margin-top:10px;font-size:12px;color:var(--text3);"></div>
+    </div>`;
+
+  // Bind field saves
+  panel.querySelectorAll("[data-fid]").forEach(el => {
+    el.addEventListener("input", () => {
+      const [sid, fid] = el.dataset.fid.split(":");
+      localStorage.setItem(lsKey(sid, fid), el.value);
+    });
+  });
+
+  // Bind ingest buttons (non-upload)
+  panel.querySelectorAll("[data-ingest]").forEach(btn => {
+    const sid = btn.dataset.ingest;
+    const srcDef = srcById[sid];
+    if (srcDef.method !== "upload") {
+      btn.addEventListener("click", () => runSourceIngest(sid));
+    }
+  });
+
+  // Bind upload zone
+  if (src.method === "upload") {
+    const zone = $(`uzone_${src.id}`);
+    const fileInput = $(`ufile_${src.id}`);
+    const nameEl = $(`uname_${src.id}`);
+    const ubtn = $(`ubtn_${src.id}`);
+
+    zone.addEventListener("click", () => fileInput.click());
+    zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("drag"); });
+    zone.addEventListener("dragleave", () => zone.classList.remove("drag"));
+    zone.addEventListener("drop", e => {
+      e.preventDefault(); zone.classList.remove("drag");
+      const f = e.dataTransfer.files[0];
+      if (f) { fileInput._file = f; nameEl.textContent = f.name; ubtn.disabled = false; }
+    });
+    fileInput.addEventListener("change", () => {
+      const f = fileInput.files[0];
+      if (f) { nameEl.textContent = f.name; ubtn.disabled = false; }
+    });
+    ubtn.addEventListener("click", () => runUploadIngest(src.id));
+  }
+
+  if (src.method === "manual") {
+    const gotoBtn = $(`gotoManualBtn_${src.id}`);
+    gotoBtn.addEventListener("click", () => {
+      S.manualTagSourceId = src.id;
+      const ta = $("manualText");
+      ta.scrollIntoView({ behavior: "smooth", block: "center" });
+      ta.focus();
+      const resEl = $(`srcResult_${src.id}`);
+      if (resEl) resEl.innerHTML = `<span style="color:var(--accent);">Paste your ${esc(src.manualLabel || src.name)} text above, then click "Add text" — it'll be tagged as ${esc(src.manualLabel || src.name)}.</span>`;
+    });
+  }
+
+  renderSourcesGrid();
+}
+
+// â”€â”€ Get field values from config panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function getSrcVals(src) {
+  const vals = {};
+  const all = $("srcConfigPanel").querySelectorAll("[data-fid]");
+  all.forEach(el => {
+    const [, fid] = el.dataset.fid.split(":");
+    vals[fid] = el.value;
+  });
+  // Fill from localStorage for any missing
+  if (src.fields) {
+    src.fields.forEach(f => {
+      if (!vals[f.id]) vals[f.id] = localStorage.getItem(lsKey(src.id, f.id)) || f.value || "";
+    });
+  }
+  return vals;
+}
+function getStoredSrcVals(src) {
+  const vals = {};
+  if (src.fields) {
+    src.fields.forEach(f => {
+      vals[f.id] = localStorage.getItem(lsKey(src.id, f.id)) || f.value || "";
+    });
+  }
+  if (src.oauth && !vals.access_token) {
+    vals.access_token = localStorage.getItem(oauthKey(src.oauth)) || "";
+  }
+  return vals;
+}
+
+function sourceLooksConfigured(src) {
+  if (src.method === "upload") return false;
+  try {
+    src.buildPayload(getStoredSrcVals(src), S.userId);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function runConfiguredSources() {
+  const ready = SOURCES.filter(sourceLooksConfigured);
+  if (!ready.length) {
+    alert("Configure at least one source first.");
+    return;
+  }
+  const btn = $("fetchConfiguredBtn");
+  btn.disabled = true;
+  btn.innerHTML = `<span class="spin"></span> Fetching ${ready.length} source${ready.length === 1 ? "" : "s"}...`;
+  for (const src of ready) {
+    S.activeSrc = src.id;
+    openSrcConfig(src.id);
+    await runSourceIngest(src.id);
+  }
+  btn.disabled = false;
+  btn.textContent = "Fetch configured sources";
+}
+
+// â”€â”€ Ingest: username / oauth sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function runSourceIngest(id) {
+  const src = srcById[id];
+  const btn = $("srcConfigPanel").querySelector(`[data-ingest="${id}"]`);
+  const resEl = $(`srcResult_${id}`);
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin"></span> Fetchingâ€¦`; }
+
+  try {
+    const vals = getSrcVals(src);
+    const payload = src.buildPayload(vals, S.userId);
+    const data = await api(src.path, { method: "POST", body: JSON.stringify(payload) });
+    S.userId = data.user_id;
+    S.ingestedSources.add(id);
+    if (resEl) resEl.innerHTML = `<span style="color:var(--green);">âœ“ ${data.ingested_count} posts ingested (${data.deduped_count} deduped)</span>`;
+    logMsg(`POST ${src.path}`, data);
+    showResultCard(src.name, data.ingested_count, data.deduped_count, true);
+    renderSourcesGrid();
+    updateCounts();
+  } catch (err) {
+    if (resEl) resEl.innerHTML = `<span style="color:var(--red);">âœ— ${esc(err.message)}</span>`;
+    logMsg(`POST ${src.path} failed`, { error: err.message });
+    showResultCard(src.name, 0, 0, false, err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = `Fetch ${src.name} posts`; }
+  }
+}
+
+// â”€â”€ Ingest: file upload sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function runUploadIngest(id) {
+  const src = srcById[id];
+  const fileInput = $(`ufile_${id}`);
+  const ubtn = $(`ubtn_${id}`);
+  const resEl = $(`srcResult_${id}`);
+  const file = fileInput._file || fileInput.files[0];
+  if (!file) { alert("Please select a file first."); return; }
+
+  ubtn.disabled = true;
+  ubtn.innerHTML = `<span class="spin"></span> Uploadingâ€¦`;
+
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    if (S.userId) fd.append("user_id", S.userId);
+    const uname = $("sUsername").value.trim();
+    if (uname) fd.append("username", uname);
+
+    const data = await apiForm(src.path, fd);
+    S.userId = data.user_id;
+    S.ingestedSources.add(id);
+    if (resEl) resEl.innerHTML = `<span style="color:var(--green);">âœ“ ${data.ingested_count} posts ingested</span>`;
+    logMsg(`POST ${src.path}`, data);
+    showResultCard(src.name, data.ingested_count, data.deduped_count, true);
+    renderSourcesGrid();
+    updateCounts();
+  } catch (err) {
+    if (resEl) resEl.innerHTML = `<span style="color:var(--red);">âœ— ${esc(err.message)}</span>`;
+    logMsg(`POST ${src.path} failed`, { error: err.message });
+    showResultCard(src.name, 0, 0, false, err.message);
+  } finally {
+    ubtn.disabled = false;
+    ubtn.textContent = "Upload & ingest";
+  }
+}
+
+// â”€â”€ Manual text ingest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+$("manualIngestBtn").addEventListener("click", async () => {
+  const text = $("manualText").value.trim();
+  if (!text) { alert("Please paste some text first."); return; }
+  const btn = $("manualIngestBtn");
+  const res = $("manualResult");
+  btn.disabled = true; btn.innerHTML = `<span class="spin"></span>`;
+  try {
+    const tagId = S.manualTagSourceId;
+    const tagSrc = tagId ? srcById[tagId] : null;
+    const payload = {
+      text,
+      source_name: tagSrc ? (tagSrc.manualSourceName || "manual_paste") : "manual_paste",
+      username: $("sUsername").value.trim() || undefined,
+      user_id: S.userId,
+    };
+    const data = await api("/ingest/manual", { method: "POST", body: JSON.stringify(payload) });
+    S.userId = data.user_id;
+    const label = tagSrc ? (tagSrc.manualLabel || tagSrc.name) : "Manual text";
+    S.ingestedSources.add(tagId || "manual");
+    res.textContent = `âœ“ ${data.ingested_count} chunks added`;
+    res.style.color = "var(--green)";
+    $("manualText").value = "";
+    S.manualTagSourceId = null;
+    logMsg("POST /ingest/manual", data);
+    showResultCard(label, data.ingested_count, data.deduped_count, true);
+    renderSourcesGrid();
+    updateCounts();
+  } catch (err) {
+    res.textContent = `âœ— ${err.message}`;
+    res.style.color = "var(--red)";
+    logMsg("POST /ingest/manual failed", { error: err.message });
+  } finally {
+    btn.disabled = false; btn.textContent = "Add text";
+  }
+});
+
+// â”€â”€ Show result card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function showResultCard(name, count, deduped, ok, errMsg) {
+  $("resultsCard").style.display = "";
+  const existing = document.querySelector(`[data-rc="${name}"]`);
+  const html = ok
+    ? `<div class="res-card ok" data-rc="${esc(name)}"><div class="res-label">${esc(name)}</div><div class="res-count">${count}</div><div class="res-detail">${deduped} deduped</div></div>`
+    : `<div class="res-card err" data-rc="${esc(name)}"><div class="res-label">${esc(name)}</div><div class="res-count fail">Failed</div><div class="res-detail">${esc(errMsg || "")}</div></div>`;
+  if (existing) existing.outerHTML = html;
+  else $("resultGrid").insertAdjacentHTML("beforeend", html);
+
+  const okCards = $("resultGrid").querySelectorAll(".res-card.ok").length;
+  const pill = $("resultsPill");
+  pill.className = `pill ${okCards > 0 ? "pill-ok" : "pill-err"}`;
+  pill.textContent = okCards > 0 ? `${okCards} source${okCards > 1 ? "s" : ""} ready` : "failed";
+}
+
+// â”€â”€ Update CTA / counts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function updateCounts() {
+  const n = S.ingestedSources.size;
+  $("selCount").textContent = `${n} source${n === 1 ? "" : "s"} collected`;
+  $("analyzeAllBtn").disabled = n === 0 || S.busy;
+  const ctaBar = $("ctaBar");
+  if (n > 0) {
+    ctaBar.style.display = "";
+    $("ctaTitle").textContent = `${n} source${n > 1 ? "s" : ""} ready`;
+    $("ctaSub").textContent = "Click Analyze to generate your shadow profile";
+  } else {
+    ctaBar.style.display = "none";
+  }
+}
+
+// â”€â”€ Analyze â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function runAnalyze() {
+  if (!S.userId || S.busy) return;
+  S.busy = true;
+  $("analyzeAllBtn").disabled = true;
+  $("analyzeAllBtn").innerHTML = `<span class="spin"></span> Analyzingâ€¦`;
+  $("ctaAnalyzeBtn").disabled = true;
+  $("ctaAnalyzeBtn").innerHTML = `<span class="spin"></span> Analyzingâ€¦`;
+  try {
+    const data = await api(`/analyze/${S.userId}`, { method: "POST" });
+    logMsg(`POST /analyze/${S.userId}`, data);
+    await loadProfile();
+    switchPage("profile");
+  } catch (err) {
+    logMsg("Analyze failed", { error: err.message });
+    alert("Analysis failed: " + err.message);
+  } finally {
+    S.busy = false;
+    $("analyzeAllBtn").disabled = false;
+    $("analyzeAllBtn").textContent = "âœ¦ Analyze my profile";
+    $("ctaAnalyzeBtn").disabled = false;
+    $("ctaAnalyzeBtn").textContent = "âœ¦ Analyze now";
+  }
+}
+$("fetchConfiguredBtn").addEventListener("click", runConfiguredSources);
+$("analyzeAllBtn").addEventListener("click", runAnalyze);
+$("ctaAnalyzeBtn").addEventListener("click", runAnalyze);
+
+// â”€â”€ Load & render profile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let _radar = null;
+async function loadProfile() {
+  if (!S.userId) return;
+  try {
+    const data = await api(`/profile/${S.userId}`);
+    logMsg(`GET /profile/${S.userId}`, data);
+    renderProfile(data);
+  } catch (err) { logMsg("Load profile failed", { error: err.message }); }
+}
+
+function renderProfile(p) {
+  $("profileEmpty").style.display = "none";
+  const c = $("profileContent"); c.style.display = "flex";
+  const raw = p.raw_output || {};
+
+  // Hero
+  const archetype = raw.archetype || p.archetype || "";
+  const headline  = raw.headline  || p.headline  || "Your Digital Profile";
+  const perceived = raw.perceived_as || p.perceived_as || "";
+  const dominant  = (p.sentiment_summary || {}).dominant || "";
+  $("heroArchetype").textContent = archetype ? `âœ¦ ${archetype}` : "";
+  $("heroHeadline").textContent  = headline;
+  $("heroPerceived").textContent = perceived;
+  $("heroPostCount").textContent = `${p.posts_analyzed} posts analyzed`;
+  $("heroDominant").textContent  = dominant;
+
+  // Summary
+  $("profileSummary").textContent = p.summary || "No summary available.";
+
+  // OCEAN
+  const ocean = p.ocean || {}, conf = p.ocean_confidence || {}, oreads = raw.ocean_readable || p.ocean_readable || {};
+  const KEYS   = ["openness","conscientiousness","extraversion","agreeableness","neuroticism"];
+  const LABELS = ["Openness","Conscientiousness","Extraversion","Agreeableness","Neuroticism"];
+  const FILLS  = ["fill-O","fill-C","fill-E","fill-A","fill-N"];
+  const scores = KEYS.map(k => (ocean[k] ?? 0) * 100);
+
+  if (_radar) _radar.destroy();
+  _radar = new Chart($("radarChart").getContext("2d"), {
+    type: "radar",
+    data: {
+      labels: LABELS,
+      datasets: [{ data: scores, backgroundColor: "rgba(91,79,207,0.08)", borderColor: "#5b4fcf", pointBackgroundColor: "#7c6ff0", borderWidth: 2, pointRadius: 4 }],
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { r: { min: 0, max: 100, ticks: { display: false }, grid: { color: "#e8e6e0" }, angleLines: { color: "#e8e6e0" }, pointLabels: { color: "#6b6860", font: { size: 11 } } } } },
+  });
+
+  $("oceanList").innerHTML = KEYS.map((k, i) => {
+    const score = ocean[k] ?? null, c2 = conf[k] ?? null;
+    const pct   = score !== null ? (score * 100).toFixed(0) + "%" : "â€”";
+    const width  = score !== null ? (score * 100).toFixed(1) : 0;
+    const read   = oreads[k] || "";
+    return `<div class="ocean-row">
+      <div class="ocean-top">
+        <span class="ocean-trait">${LABELS[i]}</span>
+        <span class="ocean-right">
+          ${c2 !== null ? `<span class="ocean-conf">${(c2*100).toFixed(0)}% conf</span>` : ""}
+          <span class="ocean-pct">${pct}</span>
+        </span>
+      </div>
+      <div class="ocean-track"><div class="ocean-fill ${FILLS[i]}" style="width:${width}%"></div></div>
+      ${read ? `<div class="ocean-readable">${esc(read)}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  // Sentiment
+  const sent = p.sentiment_summary || {};
+  $("sentChips").innerHTML = [
+    { label: "DOMINANT MOOD", value: sent.dominant || "â€”" },
+    { label: "VALENCE",       value: sent.valence != null ? Number(sent.valence).toFixed(2) : "â€”" },
+    { label: "ARC",           value: sent.arc?.slice(0, 3).join(" â†’ ") || "â€”" },
+  ].map(ch => `<div class="sent-chip"><div class="sc-label">${ch.label}</div><div class="sc-value">${esc(ch.value)}</div></div>`).join("");
+
+  // Topics
+  const topics = Array.isArray(p.topics) ? p.topics : [];
+  $("topicsList").innerHTML = topics.length
+    ? topics.map(t => {
+        const pct = t.weight != null ? (t.weight * 100).toFixed(0) : "â€”";
+        const w   = t.weight != null ? (t.weight * 100).toFixed(1) : 0;
+        return `<div>
+          <div class="topic-row">
+            <span class="topic-name">${esc(t.theme || "topic")}</span>
+            <div class="topic-track"><div class="topic-fill" style="width:${w}%"></div></div>
+            <span class="topic-pct">${pct}%</span>
+          </div>
+          ${t.insight ? `<div class="topic-insight">${esc(t.insight)}</div>` : ""}
+        </div>`;
+      }).join("")
+    : `<p style="color:var(--text3);font-size:13px;">No topics extracted.</p>`;
+
+  // Communication + Emotional
+  $("commStyle").textContent    = raw.communication_style  || p.communication_style  || "â€”";
+  $("emotSig").textContent      = raw.emotional_signature  || p.emotional_signature  || "â€”";
+
+  // Strengths
+  const strengths = raw.strengths || p.strengths || [];
+  $("strengthsList").innerHTML  = strengths.length
+    ? strengths.map(s => `<div class="insight-item"><span class="ins-dot dot-green"></span>${esc(s)}</div>`).join("")
+    : `<p style="color:var(--text3);font-size:13px;">â€”</p>`;
+
+  // Blind spots
+  const blinds = raw.blind_spots || p.blind_spots || [];
+  $("blindSpotsList").innerHTML = blinds.length
+    ? blinds.map(s => `<div class="insight-item"><span class="ins-dot dot-amber"></span>${esc(s)}</div>`).join("")
+    : `<p style="color:var(--text3);font-size:13px;">â€”</p>`;
+
+  $("howToConnect").textContent = raw.how_to_connect || p.how_to_connect || "â€”";
+}
+
+// â”€â”€ History â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function loadHistory() {
+  if (!S.userId) { $("historyList").innerHTML = `<div class="empty-state"><p>No user yet.</p></div>`; return; }
+  try {
+    const data = await api(`/profile/${S.userId}/history`);
+    $("historyList").innerHTML = data.length
+      ? data.map(item => `<div class="hist-row">
+          <span class="hist-date">${new Date(item.created_at).toLocaleString()}</span>
+          <span class="hist-posts">${item.posts_analyzed} posts</span>
+          <span class="hist-summary">${esc((item.summary||"").substring(0,90))}${(item.summary||"").length>90?"â€¦":""}</span>
+        </div>`).join("")
+      : `<div class="empty-state" style="padding:28px 0;"><p>No snapshots yet.</p></div>`;
+  } catch (err) { logMsg("Load history failed", { error: err.message }); }
+}
+
+// â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function checkHealth() {
+  try {
+    const data = await api("/health");
+    const ok = data.status === "ok";
+    $("hDot").className = `h-dot ${ok ? "ok" : "err"}`;
+    $("hText").textContent = ok ? "API ready" : "API error";
+  } catch {
+    $("hDot").className = "h-dot err"; $("hText").textContent = "Offline";
+  }
+}
+
+// Restore OAuth tokens
+SOURCES.filter(s => s.oauth).forEach(s => {
+  const t = localStorage.getItem(oauthKey(s.oauth));
+  if (t) localStorage.setItem(lsKey(s.id, "access_token"), t);
+});
+
+renderSourcesGrid();
+checkHealth();
+</script>
+</body>
+</html>
+
+
+
+
+
