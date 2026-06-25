@@ -259,7 +259,3 @@ ShadowSelf builds a *perception mirror*, not a psychological assessment.
 - Public scraping (LinkedIn URL, Meta pages) is best-effort and may break if providers change their pages or block the scraper
 
 ---
-
-## License
-
-MIT
