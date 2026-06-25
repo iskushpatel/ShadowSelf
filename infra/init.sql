@@ -1,0 +1,1 @@
+-- The deployable MVP stores embeddings as JSONB, so no database extension is required.

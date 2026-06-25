@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: shadowself-postgres
+    environment:
+      POSTGRES_DB: shadowself
+      POSTGRES_USER: shadowself
+      POSTGRES_PASSWORD: shadowself_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - shadowself_postgres_data:/var/lib/postgresql/data
+      - ./infra/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shadowself -d shadowself"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: shadowself-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - shadowself_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  shadowself_postgres_data:
+  shadowself_redis_data:
