@@ -5,8 +5,11 @@
 ShadowSelf ingests your writing from sources you control, normalises it into a unified post store, and runs LLM agents to build a *perception mirror*: not a proof of who you are, but a reflection of how you are perceived by others based on your social media presence.
 
 Every result is tied to the data it came from and labelled with how reliable that source is, so you always know what the analysis is — and isn't — based on.
+<img width="1920" height="1080" alt="Screenshot (183)" src="https://github.com/user-attachments/assets/23c8bcbf-40b4-459e-a410-ac3ddf8ce00b" />
+<img width="1920" height="1080" alt="Screenshot (184)" src="https://github.com/user-attachments/assets/2e90042c-9d46-4c6b-ac71-022dc50f1677" />
+<img width="1920" height="1080" alt="Screenshot (185)" src="https://github.com/user-attachments/assets/5cacd062-146b-4693-a256-672711ffc5ea" />
 
-![ShadowSelf UI](docs/screenshot.png)
+
 
 ---
 
